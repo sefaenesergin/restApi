@@ -2,17 +2,18 @@ import mongoose from "mongoose";
 import bcrypt from "bcrypt";
 import config from "config";
 
-//typescript defination for schema
-export interface UserDocument extends mongoose.Document {
+export interface UserInput {
   email: string;
   name: string;
   password: string;
+}
+
+export interface UserDocument extends UserInput, mongoose.Document {
   createdAt: Date;
   updatedAt: Date;
   comparePassword(candidatePassword: string): Promise<Boolean>;
 }
 
-//schema definitation
 const userSchema = new mongoose.Schema(
   {
     email: { type: String, required: true, unique: true },
@@ -20,7 +21,7 @@ const userSchema = new mongoose.Schema(
     password: { type: String, required: true },
   },
   {
-    timestamps: true, // it gives us a creator and updated date
+    timestamps: true,
   }
 );
 
@@ -31,7 +32,6 @@ userSchema.pre("save", async function (next) {
     return next();
   }
 
-  //using this salt with bcrypt hash is the strongest password hashing algorithm
   const salt = await bcrypt.genSalt(config.get<number>("saltWorkFactor"));
 
   const hash = await bcrypt.hashSync(user.password, salt);
@@ -49,7 +49,6 @@ userSchema.methods.comparePassword = async function (
   return bcrypt.compare(candidatePassword, user.password).catch((e) => false);
 };
 
-//model definitation
-const UserModel = mongoose.model("User", userSchema);
+const UserModel = mongoose.model<UserDocument>("User", userSchema);
 
 export default UserModel;
